@@ -1,0 +1,124 @@
+#! /usr/bin/env python
+
+import os
+import sys
+import time
+import signal
+import random
+from platform import system as system_name
+
+__DEBUG__ = True
+
+HOME_DIR = os.path.expanduser('~')
+KEYMAP_CONFIG_NAME = '.keymap'
+KEYMAP_LOCATION = os.path.join(HOME_DIR, KEYMAP_CONFIG_NAME)
+
+
+def check_os():
+    """ Check OS is Darwin, or raise Exception. """
+    if system_name().lower() == 'darwin':
+        pass
+    else:
+        raise Exception("Apologies, this CLI is designed for use on Darwin-based OSes.")
+
+
+def clear_screen():
+    """ Clear the screen. """
+    command = '-cls' if system_name().lower() == 'windows' else 'clear'
+    os.system(command)
+
+
+def import_keymap():
+    """ Import an existing keymap. """
+    print "import keymap"
+
+
+def create_keymap_dict():
+    """ Create basic keymap dict, based on user input. """
+    keymap_dict = {}
+    current_key = None
+    current_value = None
+
+    def quit(value):
+        return value.lower().strip() == 'quit'
+
+    while current_key != 'quit' and current_value != 'quit':
+        current_key = raw_input("Key you'd like to change: ")
+        if current_key.lower().strip() != 'quit':
+            current_key = current_key[:1]
+        else:
+            break
+        current_value = raw_input("Key you'd like to map '{}' to: ".format(current_key))
+        if current_value.lower().strip() != 'quit':
+            keymap_dict[current_key] = current_value[:1]
+        else:
+            break
+
+    print "here's your dict: {}".format(keymap_dict)
+
+
+def create_keymap():
+    """ Create keymap config. """
+    clear_screen()
+    print """We'll go through a series of prompts to build out a basic keymap.
+First we'll ask which key you'd like to remap.
+Then we'll ask what you'd you like to map it to.
+When you're done, type 'quit' and hit enter, and we'll create your keymap.
+
+Note: only the first key you press will be tracked."""
+
+    create_keymap_dict()
+
+    with open(KEYMAP_LOCATION, 'w+') as f:
+        f.truncate()
+        f.write('Hello {}'.format(random.random()))
+
+
+def should_create_keymap():
+    """ Determine whether to create keymap config file automatically. """
+    clear_screen()
+    create = raw_input("\rWould you like to automatically create a keymap config?\n"
+                       "It will be stored at location: {}\n".format(os.path.join(HOME_DIR, KEYMAP_CONFIG_NAME)) +
+                       "Enter [y/N]: ").lower()
+
+    if create == 'y':
+        create_keymap()
+    elif create == 'n':
+        end_session(None, None)
+    else:
+        clear_screen()
+        print "Please enter [y/N]"
+        time.sleep(1)
+        should_create_keymap()
+
+
+def end_session(signal, frame):
+    """ Graceful shutdown of python process. """
+    clear_screen()
+    print "Goodbye."
+    time.sleep(.5)
+    clear_screen()
+    sys.exit(0)
+
+
+def main():
+    """ Instantiate keymapper. """
+    if os.path.isfile(KEYMAP_LOCATION):
+        import_keymap()
+    else:
+        should_create_keymap()
+
+
+signal.signal(signal.SIGINT, end_session)
+
+
+def delete_keymap():
+    """ Delete file on debug. """
+    if os.path.isfile(KEYMAP_LOCATION):
+        os.remove(KEYMAP_LOCATION)
+
+if __name__ == '__main__':
+    check_os()
+    if __DEBUG__:
+        delete_keymap()
+    main()
